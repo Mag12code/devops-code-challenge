@@ -1,5 +1,5 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Use Node.js 16 for better compatibility
+FROM node:16-alpine
 
 # Set working directory
 WORKDIR /app
@@ -8,13 +8,22 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy application files
 COPY . .
 
-# Expose port 3000
-EXPOSE 3000
+# Build the application
+RUN npm run build
 
-# Start the application
-CMD ["npm", "start"]
+# Use nginx to serve the static files
+FROM nginx:alpine
+
+# Copy built files to nginx
+COPY --from=0 /app/build /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
