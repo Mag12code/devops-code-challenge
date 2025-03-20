@@ -2,65 +2,67 @@ pipeline {
     agent any
     
     environment {
-        AWS_DEFAULT_REGION = 'us-east-2'
+        AWS_REGION = 'us-east-2'
         AWS_ACCOUNT_ID = '340752806399'
-        ECR_REPOSITORY = 'my-application-repo'
-        FRONTEND_SERVICE_NAME = 'frontend-service'
-        BACKEND_SERVICE_NAME = 'backend-service'
+        ECR_REPO = 'my-application-repo'
+        IMAGE_TAG_FRONTEND = 'frontend-2'
+        IMAGE_TAG_BACKEND = 'backend-2'
         ECS_CLUSTER_NAME = 'my-cluster'
+        AWS_ACCESS_KEY = credentials('aws-credentials')
     }
-
+    
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-
+        
         stage('Configure AWS') {
             steps {
-                withCredentials([[
-                    $class: 'AWSCredentialsBinding',
-                    credentialsId: '637da2d6-d25c-4c10-b540-1bac7db21704',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    sh 'aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID'
-                    sh 'aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY'
-                    sh 'aws configure set region $AWS_DEFAULT_REGION'
-                }
+                sh '''
+                    aws configure set aws_access_key_id $AWS_ACCESS_KEY_USR
+                    aws configure set aws_secret_access_key $AWS_ACCESS_KEY_PSW
+                    aws configure set region ${AWS_REGION}
+                    aws configure set output json
+                '''
             }
         }
-
+        
         stage('Build Docker Images') {
             steps {
-                script {
-                    sh '''
-                        docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}:frontend-${BUILD_NUMBER} ./frontend
-                        docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}:backend-${BUILD_NUMBER} ./backend
-                    '''
-                }
+                sh '''
+                    docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG_FRONTEND} frontend/
+                    docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG_BACKEND} backend/
+                '''
             }
         }
-
+        
         stage('Push to ECR') {
             steps {
-                script {
-                    sh 'aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com'
-                    sh '''
-                        docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}:frontend-${BUILD_NUMBER}
-                        docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}:backend-${BUILD_NUMBER}
-                    '''
-                }
+                sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                    docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG_FRONTEND}
+                    docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG_BACKEND}
+                '''
+            }
+        }
+        
+        stage('Deploy to ECS') {
+            steps {
+                sh '''
+                    aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service frontend-service --force-new-deployment --region ${AWS_REGION}
+                    aws ecs update-service --cluster ${ECS_CLUSTER_NAME} --service backend-service --force-new-deployment --region ${AWS_REGION}
+                '''
             }
         }
     }
-
+    
     post {
         always {
             sh '''
-                docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}:frontend-${BUILD_NUMBER} || true
-                docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY}:backend-${BUILD_NUMBER} || true
+                docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG_FRONTEND} || true
+                docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG_BACKEND} || true
             '''
         }
         success {
