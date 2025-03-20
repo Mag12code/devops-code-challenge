@@ -13,17 +13,8 @@ RUN npm install --legacy-peer-deps
 # Copy application files
 COPY . .
 
-# Build the application
-RUN npm run build
+# Expose port 3000
+EXPOSE 3000
 
-# Use nginx to serve the static files
-FROM nginx:alpine
-
-# Copy built files to nginx
-COPY --from=0 /app/build /usr/share/nginx/html
-
-# Expose port 80
-EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the application
+CMD ["npm", "start"]
