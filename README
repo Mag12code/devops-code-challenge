@@ -1,0 +1,117 @@
+# DevOps Code Challenge
+
+This repository contains a full-stack application deployment using Jenkins CI/CD pipeline with AWS ECS.
+
+## Architecture Overview
+
+- **Frontend**: React application served via Nginx
+- **Backend**: Node.js/Express API
+- **CI/CD**: Jenkins Pipeline
+- **Container Registry**: Amazon ECR
+- **Container Orchestration**: Amazon ECS (Fargate)
+- **Infrastructure**: AWS (VPC, EC2, etc.)
+
+## Prerequisites
+
+1. AWS Account with necessary permissions
+2. Jenkins server running on EC2
+3. Docker installed on Jenkins server
+4. AWS CLI configured
+5. Git installed
+
+## Infrastructure Setup
+
+### 1. AWS Setup
+
+1. Create a VPC with public subnet
+2. Create an EC2 instance for Jenkins
+3. Create an ECS cluster
+4. Create an ECR repository
+5. Configure security groups
+6. Set up IAM roles and policies
+
+### 2. Jenkins Setup
+
+1. Install Jenkins on EC2
+2. Install required Jenkins plugins:
+   - Docker Pipeline
+   - AWS Pipeline
+   - Git
+3. Configure Jenkins credentials:
+   - AWS credentials
+   - GitHub credentials
+
+## Application Deployment
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/Mag12code/devops-code-challenge.git
+cd devops-code-challenge
+```
+
+### 2. Configure Jenkins Pipeline
+
+1. Create a new Pipeline job in Jenkins
+2. Configure GitHub webhook for automatic triggers
+3. Point to the Jenkinsfile in the repository
+
+### 3. Pipeline Stages
+
+The Jenkins pipeline includes the following stages:
+
+1. **Checkout**: Clones the repository
+2. **Verify Environment**: Checks Docker and AWS CLI installation
+3. **Configure AWS**: Sets up AWS credentials
+4. **Create ECR Repository**: Creates/verifies ECR repository
+5. **Build Docker Images**: Builds frontend and backend containers
+6. **Push to ECR**: Pushes images to Amazon ECR
+7. **Deploy to ECS**: Updates ECS services with new images
+
+### 4. Environment Variables
+
+Required environment variables in Jenkins:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_DEFAULT_REGION`
+- `ECR_REPOSITORY_URL`
+
+### 5. Monitoring and Logs
+
+- Monitor ECS service status in AWS Console
+- Check CloudWatch logs for container logs
+- View Jenkins pipeline execution logs
+
+## Access Information
+
+- Jenkins Server: http://ec2-3-12-123-194.us-east-2.compute.amazonaws.com:8080
+- Frontend Application: [URL will be available after successful deployment]
+
+## Troubleshooting
+
+1. Check Jenkins pipeline logs for build/deployment issues
+2. Verify ECS service status and task definitions
+3. Check security group configurations
+4. Verify IAM roles and permissions
+5. Check container logs in CloudWatch
+
+## Security Considerations
+
+1. Use IAM roles with minimum required permissions
+2. Keep Jenkins server security patches up to date
+3. Use secure credentials management in Jenkins
+4. Regularly rotate AWS access keys
+5. Implement network security best practices
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
